@@ -241,7 +241,9 @@ install(
 install(
     DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/entityx/
     DESTINATION ${include_install_dir}/entityx
-    FILES_MATCHING PATTERN "*.h"
+    FILES_MATCHING 
+    PATTERN "*.h"
+    PATTERN "entityx/3rdparty*" EXCLUDE
 )
 
 install(
