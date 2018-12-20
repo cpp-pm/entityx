@@ -1,18 +1,25 @@
 cmake_minimum_required(VERSION 3.1)
 set(ENTITYX_MAJOR_VERSION 1)
-set(ENTITYX_MINOR_VERSION 1)
-set(ENTITYX_PATCH_VERSION 2)
+set(ENTITYX_MINOR_VERSION 3)
+set(ENTITYX_PATCH_VERSION 0)
 set(ENTITYX_VERSION ${ENTITYX_MAJOR_VERSION}.${ENTITYX_MINOR_VERSION}.${ENTITYX_PATCH_VERSION})
-set(CMAKE_CXX_EXTENSIONS OFF)
+#set(CMAKE_CXX_EXTENSIONS OFF)
 
-project(EntityX)
+include(cmake/HunterGate.cmake)
+HunterGate(
+  URL "https://github.com/ruslo/hunter/archive/v0.23.80.tar.gz"
+  SHA1 "3bfa8be33ac3bdac570312ca1ece33059cc71c20"
+)
+
+project(entityx
+  LANGUAGES C CXX
+  VERSION "${ENTITYX_VERSION}")
 
 message(STATUS "EntityX version ${ENTITYX_VERSION}")
 
 if(NOT DEFINED CMAKE_MACOSX_RPATH)
   set(CMAKE_MACOSX_RPATH 0)
 endif()
-
 
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
@@ -28,22 +35,22 @@ include(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 include(CheckCXXSourceCompiles)
 
 # Default compiler args
-if (CMAKE_CXX_COMPILER_ID MATCHES "(GNU|.*Clang)")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Werror -Wall -Wextra -Wno-unused-parameter -Wno-error=unused-variable -Wno-error=sign-compare")
-    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-    set(CMAKE_CXX_FLAGS_MINSIZEREL "-g -Os -DNDEBUG")
-    set(CMAKE_CXX_FLAGS_RELEASE "-g -O2 -DNDEBUG")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL 'MSVC')
-    # /Zi - Produces a program database (PDB) that contains type information and symbolic debugging information for use with the debugger.
-    # /FS - Allows multiple cl.exe processes to write to the same .pdb file
-    # /DEBUG - Enable debug during linking
-    # /Od - Disables optimization
-    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /FS /DEBUG /Od /MDd")
-    # /Ox - Full optimization
-    set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG")
-    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/Ox /Zi /FS /DEBUG")
-endif()
+#if (CMAKE_CXX_COMPILER_ID MATCHES "(GNU|.*Clang)")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Werror -Wall -Wextra -Wno-unused-parameter -Wno-error=unused-variable -Wno-error=sign-compare")
+#    set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+#    set(CMAKE_CXX_FLAGS_MINSIZEREL "-g -Os -DNDEBUG")
+#    set(CMAKE_CXX_FLAGS_RELEASE "-g -O2 -DNDEBUG")
+#    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
+#elseif(CMAKE_CXX_COMPILER_ID STREQUAL 'MSVC')
+#    # /Zi - Produces a program database (PDB) that contains type information and symbolic debugging information for use with the debugger.
+#    # /FS - Allows multiple cl.exe processes to write to the same .pdb file
+#    # /DEBUG - Enable debug during linking
+#    # /Od - Disables optimization
+#    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /FS /DEBUG /Od /MDd")
+#    # /Ox - Full optimization
+#    set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG")
+#    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/Ox /Zi /FS /DEBUG")
+#endif()
 
 # if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 #     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Weverything -Wno-c++98-compat -Wno-shadow -Wno-padded -Wno-missing-noreturn -Wno-global-constructors")
@@ -55,10 +62,10 @@ if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
 endif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
 set(libdir ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR})
 
-set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-if ((MAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
-endif()
+#set(OLD_CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+#if ((MAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+#endif()
 check_cxx_source_compiles(
 "
 #include <memory>
@@ -70,12 +77,12 @@ int main() {
 ENTITYX_HAVE_CXX11_STDLIB
 )
 
-if (NOT ENTITYX_HAVE_CXX11_STDLIB)
-    message(STATUS "-- Not using -stdlib=libc++ (test failed to build)")
-    set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
-else ()
-    message(STATUS "-- Using -stdlib=libc++")
-endif ()
+#if (NOT ENTITYX_HAVE_CXX11_STDLIB)
+#    message(STATUS "-- Not using -stdlib=libc++ (test failed to build)")
+#    set(CMAKE_CXX_FLAGS "${OLD_CMAKE_CXX_FLAGS}")
+#else ()
+#    message(STATUS "-- Using -stdlib=libc++")
+#endif ()
 
 
 # Misc features
@@ -116,6 +123,9 @@ endif()
 message(STATUS "-- Checking misc features")
 require(HAVE_STDINT_H "stdint.h")
 
+hunter_add_package(SimpleSignal)
+find_package(SimpleSignal CONFIG REQUIRED)
+
 # Things to install
 
 
@@ -131,15 +141,19 @@ if (ENTITYX_BUILD_SHARED)
         VERSION ${ENTITYX_VERSION}
         SOVERSION ${ENTITYX_MAJOR_VERSION}
         FOLDER entityx)
+    target_link_libraries(entityx SimpleSignal::SimpleSignal)
     set(install_libs entityx)
     set_property(TARGET entityx APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+          $<INSTALL_INTERFACE:include>)
 else()
     add_library(entityx STATIC ${sources})
     set_target_properties(entityx PROPERTIES DEBUG_POSTFIX -d FOLDER entityx)
+    target_link_libraries(entityx SimpleSignal::SimpleSignal)
     set(install_libs entityx)
     set_property(TARGET entityx APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
-          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+          $<INSTALL_INTERFACE:include>)
 endif (ENTITYX_BUILD_SHARED)
 
 # Make sure C++11 features are available
@@ -177,6 +191,29 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/entityx/config.h
 )
 
+### Install (https://github.com/forexample/package-example) ###
+include(GNUInstallDirs)
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+
+set(config_install_dir "lib/cmake/${PROJECT_NAME}")
+set(include_install_dir "include")
+
+set(version_config "${generated_dir}/${PROJECT_NAME}ConfigVersion.cmake")
+set(project_config "${generated_dir}/${PROJECT_NAME}Config.cmake")
+set(targets_export_name "${PROJECT_NAME}Targets")
+set(namespace "${PROJECT_NAME}::")
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${version_config}" COMPATIBILITY AnyNewerVersion
+)
+
+# Note: use 'targets_export_name'
+configure_package_config_file(
+    "cmake/Config.cmake.in"
+    "${project_config}"
+    INSTALL_DESTINATION "${config_install_dir}"
+)
 
 if (NOT WINDOWS OR CYGWIN)
     set(entityx_libs -lentityx)
@@ -191,16 +228,29 @@ if (NOT WINDOWS OR CYGWIN)
         DESTINATION "${libdir}/pkgconfig"
         )
 endif()
+    
+install(
+    TARGETS entityx
+    EXPORT "${targets_export_name}"
+    LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    INCLUDES DESTINATION "${include_install_dir}"
+)
 
 install(
-    DIRECTORY "entityx"
-    DESTINATION "include"
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/entityx/
+    DESTINATION ${include_install_dir}/entityx
     FILES_MATCHING PATTERN "*.h"
-    )
+)
 
 install(
-    TARGETS ${install_libs}
-    LIBRARY DESTINATION "${libdir}"
-    ARCHIVE DESTINATION "${libdir}"
-    RUNTIME DESTINATION "bin"
-    )
+    FILES "${project_config}" "${version_config}"
+    DESTINATION "${config_install_dir}"
+)
+
+install(
+    EXPORT "${targets_export_name}"
+    NAMESPACE "${namespace}"
+    DESTINATION "${config_install_dir}"
+)
