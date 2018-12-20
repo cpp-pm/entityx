@@ -18,7 +18,7 @@
 #include <memory>
 #include <utility>
 #include "entityx/config.h"
-#include "entityx/3rdparty/simplesignal.h"
+#include <SimpleSignal/SimpleSignal.h>
 #include "entityx/help/NonCopyable.h"
 
 
